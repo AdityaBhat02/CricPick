@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: cricket-auction-app
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    plan: free
+    disk:
+      name: auction-data
+      mountPath: /opt/render/project/src/server/uploads
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: 10000
+    autoDeploy: false
