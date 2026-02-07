@@ -25,8 +25,8 @@ dist-ssr
 
 # Server
 server/node_modules
-server/uploads/*
-!server/uploads/.gitkeep
+server/data
+
 server/auction.db
 server/auction.db-journal
 

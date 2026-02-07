@@ -18,7 +18,7 @@ const multer = require('multer');
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, 'uploads'));
+        cb(null, path.join(__dirname, 'data', 'uploads'));
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + '-' + file.originalname);
@@ -26,8 +26,15 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Ensure data/uploads directory exists
+const fs = require('fs');
+const uploadsDir = path.join(__dirname, 'data', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 // Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(uploadsDir));
 
 // --- Teams API ---
 app.get('/api/teams', (req, res) => {

@@ -5,7 +5,7 @@ const AuctionContext = createContext();
 // eslint-disable-next-line react-refresh/only-export-components
 export const useAuction = () => useContext(AuctionContext);
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3000/api';
 
 export const AuctionProvider = ({ children }) => {
     const [teams, setTeams] = useState([]);

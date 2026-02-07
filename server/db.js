@@ -1,6 +1,11 @@
 const Database = require('better-sqlite3');
 const path = require('path');
-const db = new Database(path.join(__dirname, 'auction.db'), { verbose: console.log });
+const fs = require('fs');
+const dataDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir);
+}
+const db = new Database(path.join(dataDir, 'auction.db'), { verbose: console.log });
 
 // Create tables
 const createTables = () => {
