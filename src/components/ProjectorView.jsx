@@ -5,17 +5,23 @@ import confetti from 'canvas-confetti';
 import { useAuction } from '../context/AuctionContext';
 
 const ProjectorView = () => {
-    const { teams, players } = useAuction();
+    const { teams: contextTeams, players } = useAuction();
 
     const [gameState, setGameState] = useState({
         currentPlayer: null,
         currentBid: 0,
         winningTeam: null,
+        winningTeamId: null,
         isSold: false,
-        timer: 60
+        timer: 60,
+        teams: null, // Will store live team data from broadcast
+        timestamp: null
     });
 
     const [showSummary, setShowSummary] = useState(false);
+
+    // Use broadcasted team data if available (during active auction), otherwise use context
+    const teams = gameState.teams || contextTeams;
 
     useEffect(() => {
         const channel = new BroadcastChannel('auction_sync');
@@ -78,7 +84,9 @@ const ProjectorView = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-primary font-mono font-bold">{formatCurrency(team.remainingBudget)}</div>
+                                        <div className="text-primary font-mono font-bold">
+                                            {formatCurrency(team.projectedBudget || team.remainingBudget)}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -240,7 +248,9 @@ const ProjectorView = () => {
                                     <img src={team.logo} className="w-6 h-6 rounded-full" />
                                     <span className="font-bold text-sm text-slate-200 truncate max-w-[100px]">{team.name}</span>
                                 </div>
-                                <div className="font-mono text-xs font-bold text-primary">{formatCurrency(team.remainingBudget)}</div>
+                                <div className="font-mono text-xs font-bold text-primary">
+                                    {formatCurrency(team.projectedBudget || team.remainingBudget)}
+                                </div>
                             </div>
                         ))}
                     </div>

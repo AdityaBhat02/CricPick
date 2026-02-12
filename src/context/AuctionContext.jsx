@@ -111,14 +111,53 @@ export const AuctionProvider = ({ children }) => {
     // Auction Actions
     const sellPlayer = async (playerId, teamId, amount) => {
         try {
+            // Optimistic update: immediately update local state
+            const updatedTeams = teams.map(team => {
+                if (team.id === teamId) {
+                    return {
+                        ...team,
+                        remainingBudget: team.remainingBudget - amount,
+                        players: [...team.players, playerId]
+                    };
+                }
+                return team;
+            });
+
+            const updatedPlayers = players.map(player => {
+                if (player.id === playerId) {
+                    return {
+                        ...player,
+                        status: 'Sold',
+                        soldPrice: amount,
+                        soldToTeamId: teamId
+                    };
+                }
+                return player;
+            });
+
+            // Apply optimistic updates immediately
+            setTeams(updatedTeams);
+            setPlayers(updatedPlayers);
+
+            // Persist to server
             const res = await fetch(`${API_URL}/auction/sell`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ playerId, teamId, amount }),
             });
-            if (res.ok) fetchData();
+
+            if (res.ok) {
+                // Sync with server to get authoritative state
+                fetchData();
+            } else {
+                // Rollback optimistic update on error
+                console.error('Sale failed, rolling back optimistic update');
+                fetchData();
+            }
         } catch (err) {
             console.error("Error selling player:", err);
+            // Rollback on error
+            fetchData();
         }
     };
 

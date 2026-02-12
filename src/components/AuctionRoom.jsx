@@ -18,12 +18,39 @@ const AuctionRoom = () => {
     const unsoldPlayers = activePlayers.filter(p => p.status === 'Unsold');
 
     const startAuction = (player) => {
+        const auctionState = {
+            player,
+            startTime: Date.now()
+        };
+
         setCurrentPlayer(player);
         setCurrentBid(player.basePrice);
         setWinningTeamId(null);
         setIsSold(false);
         setTimer(60);
+
+        // Persist auction state
+        localStorage.setItem('activeAuction', JSON.stringify(auctionState));
     };
+
+    // Restore auction state on mount
+    useEffect(() => {
+        const savedAuction = localStorage.getItem('activeAuction');
+        if (savedAuction) {
+            try {
+                const { player } = JSON.parse(savedAuction);
+                // Check if player still exists and is unsold
+                const stillUnsold = players.find(p => p.id === player.id && p.status === 'Unsold');
+                if (stillUnsold) {
+                    // Optionally restore auction (could prompt user)
+                    // For now, just clear stale state
+                    localStorage.removeItem('activeAuction');
+                }
+            } catch (e) {
+                localStorage.removeItem('activeAuction');
+            }
+        }
+    }, [players]);
 
     // Timer Logic
     useEffect(() => {
@@ -52,17 +79,36 @@ const AuctionRoom = () => {
         }
     }, [timer, currentPlayer, isSold, winningTeamId]);
 
-    // Broadcast state changes
+    // Broadcast state changes with projected team budgets
     useEffect(() => {
         const channel = new BroadcastChannel('auction_sync');
+
+        // Calculate projected team budgets for real-time display
+        const projectedTeams = teams.map(team => {
+            // If this team is currently winning, show projected budget after potential sale
+            if (team.id === winningTeamId && currentPlayer) {
+                return {
+                    ...team,
+                    projectedBudget: team.remainingBudget - currentBid
+                };
+            }
+            return {
+                ...team,
+                projectedBudget: team.remainingBudget
+            };
+        });
+
         channel.postMessage({
             type: 'UPDATE',
             payload: {
                 currentPlayer,
                 currentBid,
                 winningTeam: teams.find(t => t.id === winningTeamId) || null,
+                winningTeamId,
                 isSold,
-                timer
+                timer,
+                teams: projectedTeams, // Send full team data with projections
+                timestamp: Date.now()
             }
         });
         return () => channel.close();
@@ -78,6 +124,9 @@ const AuctionRoom = () => {
         sellPlayer(currentPlayer.id, winningTeamId, currentBid);
         setIsSold(true);
         triggerConfetti();
+
+        // Clear auction state from storage
+        localStorage.removeItem('activeAuction');
     };
 
     const handleUnsold = (auto = false) => {
@@ -86,6 +135,9 @@ const AuctionRoom = () => {
             updatePlayer(currentPlayer.id, { status: 'Unsold' }); // Using 'Unsold' (Passed)
             setCurrentPlayer(null);
             setTimer(60);
+
+            // Clear auction state from storage
+            localStorage.removeItem('activeAuction');
         }
     };
 
